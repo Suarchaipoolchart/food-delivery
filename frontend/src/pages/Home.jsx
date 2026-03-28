@@ -152,14 +152,12 @@ export default function Home() {
                     >
                       <img
                         src={
-                          cleanImage
-                            ? `${BASE_URL}/uploads/${cleanImage}`
-                            : "https://placehold.co/300"
+                          food?.image
+                            ? `${BASE_URL}/uploads/${food.image}`
+                            : "/no-image.png"
                         }
-                        onError={(e) =>
-                          (e.target.src = "https://placehold.co/300")
-                        }
-                        className="w-full h-60 object-cover"
+                        onError={(e) => (e.currentTarget.src = "/no-image.png")}
+                        className="w-full h-48 object-cover"
                       />
 
                       <div className="p-4">
