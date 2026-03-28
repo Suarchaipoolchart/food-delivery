@@ -55,7 +55,7 @@ export default function Orders() {
       const userId = user?._id;
       if (!userId) return;
 
-      const res = await API.get(`/api/orders/user/${userId}`);
+      const res = await API.get(`/orders/user/${userId}`);
       setOrders((prev) => mergeOrders(prev, res.data || []));
     } catch (err) {
       console.log("FETCH ERROR", err);
@@ -69,7 +69,7 @@ export default function Orders() {
     fetchOrders();
 
     if (!socketRef.current) {
-      socketRef.current = io("http://localhost:5000");
+      socketRef.current = io(import.meta.env.VITE_API_URL);
     }
 
     const socket = socketRef.current;
@@ -210,7 +210,7 @@ export default function Orders() {
         name: f?.food?.name || "Unknown",
         price: f?.food?.price || 0,
         image: f?.food?.image
-          ? `http://localhost:5000/uploads/${f.food.image}`
+          ? `${import.meta.env.VITE_API_URL}/uploads/${f.food.image}`
           : "",
         qty: f?.qty || 1,
       }));
