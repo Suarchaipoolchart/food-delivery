@@ -30,7 +30,7 @@ export default function ProductCard({ food }) {
       <img
         src={
           food.image
-            ? `https://food-delivery-xgdk.onrender.com/uploads/${food.image}`
+            ? `https://food-delivery-gamma-orcin.vercel.app/uploads/${food.image}`
             : "https://placehold.co/150"
         }
         className="w-full h-40 object-cover rounded"

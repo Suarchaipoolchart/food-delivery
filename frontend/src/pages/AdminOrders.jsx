@@ -7,7 +7,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedSlip, setSelectedSlip] = useState(null);
 
-  const BASE_URL = "https://food-delivery-xgdk.onrender.com";
+  const BASE_URL = "https://food-delivery-gamma-orcin.vercel.app";
 
   // =========================
   // 🔥 SAFE ID
