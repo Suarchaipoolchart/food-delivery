@@ -19,7 +19,7 @@ export default function Checkout() {
 
   const [address, setAddress] = useState("");
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const BASE_URL = import.meta.env.VITE_API_UR;
 
   // 🏦 BANK
   const BANKS = [

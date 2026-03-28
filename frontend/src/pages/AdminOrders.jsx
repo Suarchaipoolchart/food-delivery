@@ -7,7 +7,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedSlip, setSelectedSlip] = useState(null);
 
-  const BASE_URL = "http://localhost:5000";
+  const BASE_URL = "https://food-delivery-xgdk.onrender.com";
 
   // =========================
   // 🔥 SAFE ID
