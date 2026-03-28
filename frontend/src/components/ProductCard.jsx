@@ -31,7 +31,7 @@ export default function ProductCard({ food }) {
         src={
           food.image
             ? `http://localhost:5000/uploads/${food.image}`
-            : "https://via.placeholder.com/150"
+            : "https://placehold.co/150"
         }
         className="w-full h-40 object-cover rounded"
       />

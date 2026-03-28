@@ -84,7 +84,7 @@ export default function ManageProducts() {
                     src={
                       product.image
                         ? `${BASE_URL}/uploads/${product.image}`
-                        : "https://via.placeholder.com/80"
+                        : "https://placehold.co/80"
                     }
                     className="w-16 h-16 object-cover rounded"
                   />
