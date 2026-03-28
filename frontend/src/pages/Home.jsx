@@ -153,10 +153,12 @@ export default function Home() {
                       <img
                         src={
                           food?.image
-                            ? `${BASE_URL}/uploads/${food.image}`
-                            : "/no-image.png"
+                            ? `${import.meta.env.VITE_API_URL}/uploads/${food.image}`
+                            : "https://placehold.co/300x300"
                         }
-                        onError={(e) => (e.currentTarget.src = "/no-image.png")}
+                        onError={(e) =>
+                          (e.currentTarget.src = "https://placehold.co/300x300")
+                        }
                         className="w-full h-48 object-cover"
                       />
 
