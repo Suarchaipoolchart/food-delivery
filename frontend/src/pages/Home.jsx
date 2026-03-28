@@ -152,8 +152,8 @@ export default function Home() {
                     >
                       <img
                         src={
-                          food?.image
-                            ? `${import.meta.env.VITE_API_URL}/uploads/${food.image}`
+                          cleanImage
+                            ? `${BASE_URL}/uploads/${cleanImage}`
                             : "https://placehold.co/300x300"
                         }
                         onError={(e) =>
