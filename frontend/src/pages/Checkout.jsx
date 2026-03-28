@@ -139,7 +139,7 @@ export default function Checkout() {
         formData.append("slip", slip);
       }
 
-      await API.post("/orders", formData, {
+      await API.post("/api/orders", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
