@@ -146,7 +146,7 @@ export default function AdminOrders() {
                           src={
                             item?.food?.image
                               ? `${BASE_URL}/uploads/${item.food.image}`
-                              : "https://via.placeholder.com/40"
+                              : "https://placehold.co/40"
                           }
                           className="w-8 h-8 object-cover rounded"
                         />
