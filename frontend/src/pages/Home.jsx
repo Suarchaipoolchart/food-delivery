@@ -44,7 +44,7 @@ export default function Home() {
       setLoading(true);
       setError("");
 
-      const res = await API.get("/foods", {
+      const res = await API.get("/api/foods", {
         params: {
           category: category || "",
           search,
