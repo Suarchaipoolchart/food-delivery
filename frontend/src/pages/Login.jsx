@@ -20,18 +20,15 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const res = await API.post("/api/auth/login", {
+      const res = await API.post("/auth/login", {
         email,
         password,
       });
 
-      // ✅ เก็บข้อมูลลง localStorage
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success("เข้าสู่ระบบสำเร็จ 🎉");
-
-      // 🔥 FIX: reload เพื่อให้ UI update ทันที
       window.location.href = "/";
 
       // ❌ ไม่ใช้ navigate แล้ว (เพราะ React ไม่ re-render)
