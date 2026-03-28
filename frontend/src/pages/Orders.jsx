@@ -247,7 +247,8 @@ export default function Orders() {
           {(items || []).map((item, i) => (
             <div key={i} className="flex gap-3 items-center">
               <img
-                src={item?.image || "https://via.placeholder.com/80"}
+                src={item?.image || "/no-image.png"}
+                onError={(e) => (e.currentTarget.src = "/no-image.png")}
                 className="w-14 h-14 rounded-lg"
               />
               <div className="flex-1">
