@@ -36,7 +36,7 @@ const ForgotPassword = () => {
 
       console.log("📨 Sending to:", cleanEmail);
 
-      const res = await API.post("/api/auth/forgot-password", {
+      const res = await API.post("/auth/forgot-password", {
         email: cleanEmail,
       });
 

@@ -24,7 +24,7 @@ export default function AdminOrders() {
   // =========================
   const fetchOrders = async () => {
     try {
-      const res = await API.get("/api/orders");
+      const res = await API.get("/orders");
       setOrders(res.data || []);
     } catch (err) {
       console.log(err);
@@ -63,7 +63,7 @@ export default function AdminOrders() {
   // =========================
   const updateStatus = async (id, newStatus) => {
     try {
-      await API.put(`/api/orders/${id}`, { status: newStatus });
+      await API.put(`/orders/${id}`, { status: newStatus });
 
       // optional realtime fallback
       setOrders((prev) =>
