@@ -83,7 +83,7 @@ export default function Checkout() {
     if (!couponCode) return;
 
     try {
-      const res = await API.post("/api/coupons/apply", {
+      const res = await API.post("/coupons/apply", {
         code: couponCode,
         total: subtotal, // 🔥 ต้องส่ง total ไป backend
       });
@@ -139,7 +139,7 @@ export default function Checkout() {
         formData.append("slip", slip);
       }
 
-      await API.post("/api/orders", formData, {
+      await API.post("/orders", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
