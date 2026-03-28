@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://food-delivery-xgdk.onrender.com",
+  baseURL: "https://food-delivery-xgdk.onrender.com/api",
 });
 
 // 🔥 ใส่ token อัตโนมัติ

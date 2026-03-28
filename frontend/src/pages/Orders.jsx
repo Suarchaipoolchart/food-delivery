@@ -55,7 +55,7 @@ export default function Orders() {
       const userId = user?._id;
       if (!userId) return;
 
-      const res = await API.get(`/api/orders/user/${userId}`);
+      const res = await API.get(`/orders/user/${userId}`);
       setOrders((prev) => mergeOrders(prev, res.data || []));
     } catch (err) {
       console.log("FETCH ERROR", err);
