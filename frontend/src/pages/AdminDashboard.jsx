@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="flex bg-blue-700 min-h-screen">
+    <div className="flex bg-white min-h-screen">
       <AdminSidebar />
 
       <div className="flex-1 p-10">
