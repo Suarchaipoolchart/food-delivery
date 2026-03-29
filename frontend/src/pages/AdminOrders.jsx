@@ -10,6 +10,19 @@ export default function AdminOrders() {
   const BASE_URL = "https://food-delivery-gamma-orcin.vercel.app";
 
   // =========================
+  // 🔥 FIX IMAGE PATH
+  // =========================
+  const getImage = (img) => {
+    if (!img) return "https://placehold.co/40";
+
+    if (img.startsWith("http")) return img;
+
+    const clean = img.replace(/^\/?uploads\//, "");
+
+    return `${BASE_URL}/uploads/${clean}`;
+  };
+
+  // =========================
   // 🔥 SAFE ID
   // =========================
   const getId = (o) => o?._id || o?.id || "";
@@ -59,13 +72,12 @@ export default function AdminOrders() {
   }, []);
 
   // =========================
-  // ✅ UPDATE STATUS (FIX BUG)
+  // ✅ UPDATE STATUS
   // =========================
   const updateStatus = async (id, newStatus) => {
     try {
       await API.put(`/orders/${id}`, { status: newStatus });
 
-      // optional realtime fallback
       setOrders((prev) =>
         prev.map((o) => (getId(o) === id ? { ...o, status: newStatus } : o)),
       );
@@ -143,12 +155,11 @@ export default function AdminOrders() {
                     {items.map((item, i) => (
                       <div key={i} className="flex items-center gap-2 mb-1">
                         <img
-                          src={
-                            item?.food?.image
-                              ? `${BASE_URL}/uploads/${item.food.image}`
-                              : "https://placehold.co/40"
-                          }
+                          src={getImage(item?.food?.image)}
                           className="w-8 h-8 object-cover rounded"
+                          onError={(e) => {
+                            e.target.src = "https://placehold.co/40";
+                          }}
                         />
 
                         <span>
@@ -206,9 +217,7 @@ export default function AdminOrders() {
                   <td className="p-2">
                     {order?.slip ? (
                       <button
-                        onClick={() =>
-                          setSelectedSlip(`${BASE_URL}/uploads/${order.slip}`)
-                        }
+                        onClick={() => setSelectedSlip(getImage(order.slip))}
                         className="bg-blue-500 text-white px-3 py-1 rounded"
                       >
                         View
