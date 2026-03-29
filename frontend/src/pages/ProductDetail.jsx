@@ -68,14 +68,9 @@ export default function ProductDetail() {
 
       <div className="p-10 flex gap-10">
         <img
-          src={
-            product.image
-              ? product.image.startsWith("http")
-                ? product.image
-                : `${BASE_URL}/uploads/${product.image.replace(/^\/?uploads\//, "")}`
-              : "https://placehold.co/300"
-          }
+          src={`${BASE_URL}/uploads/${product.image}`}
           onError={(e) => {
+            console.log("FAIL IMAGE:", product.image);
             e.target.src = "https://placehold.co/300";
           }}
         />
