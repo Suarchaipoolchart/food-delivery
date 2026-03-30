@@ -52,7 +52,7 @@ export default function AdminDashboard() {
 
       const [usersRes, ordersRes] = await Promise.all([
         API.get("/users"),
-        API.get("/orders/admin/orders"), // 🔥 FIX route
+        API.get("/orders"), // 🔥 FIX route
       ]);
 
       let totalSales = 0;
