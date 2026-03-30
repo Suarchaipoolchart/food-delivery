@@ -20,22 +20,24 @@ export default function Login() {
 
     try {
       setLoading(true);
+
       const res = await API.post("/auth/login", {
         email,
         password,
       });
 
+      // 🔥 เก็บ token + user
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success("เข้าสู่ระบบสำเร็จ 🎉");
-      window.location.href = "/";
 
-      // ❌ ไม่ใช้ navigate แล้ว (เพราะ React ไม่ re-render)
-      // navigate("/");
-
-      toast.success("เข้าสู่ระบบสำเร็จ 🎉");
-      navigate("/");
+      // 🔥 redirect ตาม role
+      if (res.data.user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       console.log(err?.response?.data);
       toast.error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");

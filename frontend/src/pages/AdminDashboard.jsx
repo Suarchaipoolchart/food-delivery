@@ -13,7 +13,20 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  // 🔥 แปลง status กันพัง
+  // =========================
+  // 🔥 กัน user เข้า admin
+  // =========================
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user || user.role !== "admin") {
+      window.location.href = "/";
+    }
+  }, []);
+
+  // =========================
+  // 🔥 normalize status
+  // =========================
   const normalizeStatus = (status) => {
     if (!status) return "pending";
 
@@ -25,11 +38,21 @@ export default function AdminDashboard() {
     return s;
   };
 
+  // =========================
+  // 🔥 FETCH DATA (FIX ALL)
+  // =========================
   const fetchData = async () => {
     try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.log("❌ NO TOKEN");
+        return;
+      }
+
       const [usersRes, ordersRes] = await Promise.all([
         API.get("/users"),
-        API.get("/orders"),
+        API.get("/orders/admin/orders"), // 🔥 FIX route
       ]);
 
       let totalSales = 0;
@@ -37,7 +60,7 @@ export default function AdminDashboard() {
       let delivered = 0;
 
       ordersRes.data.forEach((order) => {
-        totalSales += Number(order.total || 0);
+        totalSales += Number(order.totalPrice || 0); // 🔥 FIX field
 
         const status = normalizeStatus(order.status);
 
@@ -55,13 +78,19 @@ export default function AdminDashboard() {
 
       setLoading(false);
     } catch (err) {
-      console.log("Dashboard error:", err?.response?.data || err.message);
+      console.log("❌ Dashboard error:", err?.response?.data || err.message);
+      console.log("TOKEN:", localStorage.getItem("token"));
     }
   };
 
+  // =========================
+  // 🔥 AUTO REFRESH
+  // =========================
   useEffect(() => {
     fetchData();
+
     const interval = setInterval(fetchData, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -100,19 +129,25 @@ export default function AdminDashboard() {
   );
 }
 
-// 🔥 format เงินให้สวย
+// =========================
+// 🔥 format เงิน
+// =========================
 function formatMoney(num) {
   return new Intl.NumberFormat("th-TH").format(num) + " บาท";
 }
 
-// 🔥 Card สวย + กันล้น + กล่องขาว
+// =========================
+// 🔥 Card UI
+// =========================
 function Card({ title, value, color }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition w-full h-[120px]">
       <p className="text-gray-500 text-sm mb-2 text-center">{title}</p>
 
       <p
-        className={`text-xl sm:text-2xl font-bold text-center truncate w-full ${color || "text-gray-800"}`}
+        className={`text-xl sm:text-2xl font-bold text-center truncate w-full ${
+          color || "text-gray-800"
+        }`}
       >
         {value}
       </p>

@@ -20,6 +20,13 @@ import AdminUsers from "./pages/AdminUsers";
 import EditProduct from "./pages/EditProduct";
 import Coupons from "./pages/Coupons";
 import ProtectedRoute from "./components/ProtectedRoute"; // ⭐ เพิ่ม
+import AdminLogin from "./pages/AdminLogin";
+import AdminRoute from "./components/AdminRoute";
+
+// หน้า admin (มึงค่อยไปทำ UI ทีหลัง)
+const AdminPage = () => {
+  return <h1 className="p-10 text-2xl">Admin Dashboard</h1>;
+};
 
 function App() {
   return (
@@ -28,7 +35,6 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
         {/* 🔒 ต้อง login */}
         <Route
           path="/cart"
@@ -38,12 +44,9 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route path="/products/:id" element={<ProductDetail />} />
-
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-
         <Route
           path="/profile"
           element={
@@ -52,7 +55,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/checkout"
           element={
@@ -61,7 +63,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/orders"
           element={
@@ -70,7 +71,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         {/* 🔒 Admin (ยังไม่เช็ค role แต่กันไว้ก่อน) */}
         <Route
           path="/admin"
@@ -80,7 +80,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/add-product"
           element={
@@ -89,7 +88,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/manage-products"
           element={
@@ -98,7 +96,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin-orders"
           element={
@@ -107,7 +104,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin-users"
           element={
@@ -116,7 +112,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/edit-product/:id"
           element={
@@ -125,7 +120,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/coupons"
           element={
@@ -134,7 +128,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        // routes
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
 
