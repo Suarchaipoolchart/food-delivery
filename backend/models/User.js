@@ -47,3 +47,14 @@ userSchema.methods.comparePassword = function (password) {
 
 const User = mongoose.model("User", userSchema);
 export default User;
+
+// ==========================
+// 🔥 CHECK ROLE HELPERS
+// ==========================
+userSchema.methods.isAdmin = function () {
+  return this.role === "admin";
+};
+
+userSchema.methods.isUser = function () {
+  return this.role === "user";
+};

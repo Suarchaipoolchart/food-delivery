@@ -12,6 +12,7 @@ import {
 } from "../controllers/orderController.js";
 
 import upload from "../middleware/upload.js";
+import { protect, isAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -115,5 +116,10 @@ router.delete(
   },
   deleteOrder
 );
+
+// ==========================
+// 🔥 ADMIN ONLY GET ALL
+// ==========================
+router.get("/admin/all", protect, isAdmin, getOrders);
 
 export default router;

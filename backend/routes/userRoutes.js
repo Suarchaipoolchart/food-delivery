@@ -4,7 +4,10 @@ import {
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  loginUser,
+  registerUser,
+  isAdmin
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -14,5 +17,9 @@ router.get("/:id", getUserById);
 router.post("/", createUser);     // ⭐ ตัวนี้สำคัญ
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
+router.post("/login", loginUser);
+router.post("/register", registerUser);
+router.get("/admin", isAdmin);
+
 
 export default router;

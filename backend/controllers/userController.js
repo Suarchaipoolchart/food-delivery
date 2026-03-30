@@ -69,3 +69,106 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ==========================
+// 🔐 LOGIN USER / ADMIN
+// ==========================
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    // ❌ ไม่เจอ user
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    // ❌ เช็ครหัส (กรณีมี method matchPassword)
+    if (user.matchPassword) {
+      const isMatch = await user.matchPassword(password);
+      if (!isMatch) {
+        return res.status(401).json({
+          message: "Invalid email or password",
+        });
+      }
+    } else {
+      // ⚠️ fallback (plain text)
+      if (user.password !== password) {
+        return res.status(401).json({
+          message: "Invalid email or password",
+        });
+      }
+    }
+
+    // ✅ ส่ง role กลับไป (สำคัญ)
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role || "user",
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// ==========================
+// 📝 REGISTER (รองรับ role)
+// ==========================
+export const registerUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    const exist = await User.findOne({ email });
+
+    if (exist) {
+      return res.status(400).json({
+        message: "User already exists",
+      });
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: role || "user", // 🔥 default user
+    });
+
+    res.status(201).json(user);
+
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+
+// ==========================
+// 🔐 CHECK ADMIN (middleware)
+// ==========================
+export const isAdmin = async (req, res, next) => {
+  try {
+    const userId = req.headers["userid"]; // 🔥 simple way
+
+    if (!userId) {
+      return res.status(401).json({ message: "No user id" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({
+        message: "Admin only",
+      });
+    }
+
+    next();
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
