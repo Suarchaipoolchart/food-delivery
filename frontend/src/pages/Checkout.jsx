@@ -24,7 +24,7 @@ export default function CheckoutV2() {
   const [placingOrder, setPlacingOrder] = useState(false);
 
   // =========================
-  // 💰 CALCULATE (useMemo)
+  // 💰 CALCULATE
   // =========================
   const subtotal = useMemo(() => {
     return cart.reduce(
@@ -36,18 +36,16 @@ export default function CheckoutV2() {
   const total = finalTotal || subtotal;
 
   // =========================
-  // 📸 SLIP (validate)
+  // 📸 SLIP
   // =========================
   const handleSlip = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 🔥 กันไฟล์มั่ว
     if (!file.type.startsWith("image/")) {
       return alert("ต้องเป็นรูปภาพเท่านั้น");
     }
 
-    // 🔥 จำกัด size (2MB)
     if (file.size > 2 * 1024 * 1024) {
       return alert("ไฟล์ใหญ่เกิน 2MB");
     }
@@ -57,7 +55,7 @@ export default function CheckoutV2() {
   };
 
   // =========================
-  // 🎟️ APPLY COUPON (กัน spam)
+  // 🎟️ APPLY COUPON
   // =========================
   const applyCoupon = async () => {
     if (!couponCode) return;
@@ -78,7 +76,6 @@ export default function CheckoutV2() {
     } catch (err) {
       setDiscount(0);
       setFinalTotal(0);
-
       alert(err.response?.data?.message || "Coupon ไม่ถูกต้อง");
     } finally {
       setLoadingCoupon(false);
@@ -86,7 +83,7 @@ export default function CheckoutV2() {
   };
 
   // =========================
-  // 🛒 PLACE ORDER (กันยิงซ้ำ)
+  // 🛒 PLACE ORDER
   // =========================
   const placeOrder = async () => {
     if (placingOrder) return;
@@ -116,7 +113,6 @@ export default function CheckoutV2() {
       formData.append("paymentMethod", payment);
       formData.append("address", address);
 
-      // 🔥 ไม่ส่ง total ไป backend (กันโกง)
       if (couponCode) {
         formData.append("coupon", couponCode);
       }
@@ -136,7 +132,6 @@ export default function CheckoutV2() {
       });
 
       alert("สั่งสำเร็จ 🎉");
-
       localStorage.removeItem("cart");
       navigate("/orders");
     } catch (err) {
@@ -243,6 +238,43 @@ export default function CheckoutV2() {
             <option value="Bank Transfer">Bank Transfer</option>
           </select>
 
+          {/* PROMPTPAY */}
+          {payment === "PromptPay" && (
+            <div className="mt-4 text-center">
+              <img
+                src={`https://promptpay.io/0812345678/${total}.png`}
+                className="w-56 mx-auto"
+              />
+            </div>
+          )}
+
+          {/* BANK */}
+          {payment === "Bank Transfer" && (
+            <>
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {BANKS.map((b) => (
+                  <div
+                    key={b.name}
+                    onClick={() => setSelectedBank(b.name)}
+                    className={`border p-3 text-center cursor-pointer rounded ${
+                      selectedBank === b.name ? "border-pink-500 border-2" : ""
+                    }`}
+                  >
+                    <img src={b.img} className="h-10 mx-auto object-contain" />
+                    <p className="text-xs">{b.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 bg-gray-100 p-3 rounded">
+                <p>Foodmonkey ProMax</p>
+                <p>123-4-56789-0</p>
+                <p>{BANKS.find((b) => b.name === selectedBank)?.label}</p>
+              </div>
+            </>
+          )}
+
+          {/* SLIP */}
           {payment !== "Cash" && (
             <div className="mt-4">
               <input type="file" onChange={handleSlip} />
