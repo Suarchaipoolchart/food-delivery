@@ -1,5 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
+import Order from "../models/Order.js"; // 🔥 FIX: ต้อง import
 
 import {
   getOrders,
@@ -28,22 +29,30 @@ router.get("/", getOrders);
 // 🔥 GET USER ORDERS
 // ==========================
 // ⚠️ ต้องอยู่ก่อน /:id
-router.get("/user/:id", (req, res, next) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ message: "Invalid user id" });
-  }
-  next();
-}, getUserOrders);
+router.get(
+  "/user/:id",
+  (req, res, next) => {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+    next();
+  },
+  getUserOrders
+);
 
 // ==========================
 // 🔥 GET BY ID
 // ==========================
-router.get("/:id", (req, res, next) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
-  next();
-}, getOrderById);
+router.get(
+  "/:id",
+  (req, res, next) => {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid order id" });
+    }
+    next();
+  },
+  getOrderById
+);
 
 // ==========================
 // 🔥 CREATE ORDER (upload slip)
@@ -51,32 +60,37 @@ router.get("/:id", (req, res, next) => {
 router.post("/", upload.single("slip"), createOrder);
 
 // ==========================
-// 🔥 UPDATE ORDER (ร้านกด status)
+// 🔥 UPDATE ORDER
 // ==========================
-router.put("/:id", (req, res, next) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
-  next();
-}, updateOrder);
+router.put(
+  "/:id",
+  (req, res, next) => {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid order id" });
+    }
+    next();
+  },
+  updateOrder
+);
 
 // ==========================
-// 🔥 DELETE ORDER
+// 🔥 UPDATE RIDER LOCATION
 // ==========================
-router.delete("/:id", (req, res, next) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
-  next();
-}, deleteOrder);
-
 router.put("/:id/location", async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid order id" });
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { riderLocation: req.body },
       { new: true }
     );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
     if (global.io) {
       global.io.emit("order:update", order);
@@ -87,5 +101,19 @@ router.put("/:id/location", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+// ==========================
+// 🔥 DELETE ORDER
+// ==========================
+router.delete(
+  "/:id",
+  (req, res, next) => {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid order id" });
+    }
+    next();
+  },
+  deleteOrder
+);
 
 export default router;
