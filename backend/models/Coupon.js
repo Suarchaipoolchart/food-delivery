@@ -76,7 +76,11 @@ couponSchema.methods.isValidCoupon = function (userId) {
   }
 
   // ❌ user ใช้แล้ว
-  if (userId && this.claimedBy.includes(userId)) {
+  if (
+    userId &&
+    this.claimedBy.some(
+      (id) => id.toString() === userId.toString()
+    )) {
     return "You already used this coupon";
   }
 
