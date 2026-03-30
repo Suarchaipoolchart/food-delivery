@@ -1,5 +1,6 @@
 import Order from "../models/Order.js";
 import Food from "../models/Food.js";
+import Coupon from "../models/Coupon.js"; // 🔥 เพิ่ม
 import mongoose from "mongoose";
 
 // ==========================
@@ -7,13 +8,11 @@ import mongoose from "mongoose";
 // ==========================
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-// ✅ STATUS
 const normalizeStatus = (status) => {
   if (!status) return "pending";
-
   const s = status.toLowerCase();
 
-  if (s.includes("received") || s.includes("pending")) return "pending";
+  if (s.includes("pending") || s.includes("received")) return "pending";
   if (s.includes("preparing")) return "preparing";
   if (s.includes("on the way")) return "on_the_way";
   if (s.includes("delivered") || s.includes("complete")) return "delivered";
@@ -21,10 +20,8 @@ const normalizeStatus = (status) => {
   return "pending";
 };
 
-// ✅ PAYMENT STATUS
 const normalizePayment = (p) => {
   if (!p) return "pending";
-
   const s = p.toLowerCase();
 
   if (s.includes("paid")) return "paid";
@@ -33,10 +30,8 @@ const normalizePayment = (p) => {
   return "pending";
 };
 
-// 🔥 ตัวที่ขาดไป (ตัวปัญหา)
 const normalizePaymentMethod = (method) => {
   if (!method) return "cash";
-
   const m = method.toLowerCase();
 
   if (m.includes("cash")) return "cash";
@@ -46,48 +41,77 @@ const normalizePaymentMethod = (method) => {
 };
 
 // ==========================
-// ✅ GET ALL
+// 🔥 APPLY COUPON (HELPER)
 // ==========================
-export const getOrders = async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate("user", "name email")
-      .populate("foods.food", "name price image")
-      .sort({ createdAt: -1 });
+const applyCouponToOrder = async (couponCode, userId, total) => {
+  if (!couponCode) return { total, discount: 0 };
 
-    res.json(orders);
-  } catch (error) {
-    console.error("GET ORDERS ERROR 💥:", error);
-    res.status(500).json({ message: error.message });
+  const coupon = await Coupon.findOne({
+    code: couponCode.toUpperCase(),
+  });
+
+  if (!coupon) throw new Error("Invalid coupon");
+
+  // 🔒 VALIDATE
+  if (!coupon.isActive) throw new Error("Coupon not active");
+
+  if (coupon.expiresAt && new Date() > coupon.expiresAt) {
+    throw new Error("Coupon expired");
   }
+
+  if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
+    throw new Error("Coupon fully used");
+  }
+
+  if (
+    userId &&
+    coupon.claimedBy.some(
+      (id) => id.toString() === userId.toString()
+    )
+  ) {
+    throw new Error("You already used this coupon");
+  }
+
+  // 💰 CALCULATE
+  let discount = 0;
+
+  if (coupon.type === "percent") {
+    discount = (total * coupon.discount) / 100;
+  } else {
+    discount = coupon.discount;
+  }
+
+  if (discount > total) discount = total;
+
+  total -= discount;
+
+  // 🔥 UPDATE USAGE (สำคัญ)
+  coupon.usedCount += 1;
+
+  if (
+    userId &&
+    !coupon.claimedBy.some(
+      (id) => id.toString() === userId.toString()
+    )
+  ) {
+    coupon.claimedBy.push(userId);
+  }
+
+  await coupon.save();
+
+  return {
+    total,
+    discount,
+    couponId: coupon._id,
+  };
 };
 
 // ==========================
-// ✅ GET BY ID
-// ==========================
-export const getOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id)
-      .populate("user", "name email")
-      .populate("foods.food", "name price image");
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    res.json(order);
-  } catch (error) {
-    console.error("GET ORDER BY ID ERROR 💥:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ==========================
-// ✅ CREATE ORDER (🔥 FIX ALL)
+// ✅ CREATE ORDER (V2)
 // ==========================
 export const createOrder = async (req, res) => {
   try {
-    let { foods, user, paymentMethod } = req.body;
+    let { foods, user, paymentMethod, coupon } = req.body;
 
     // parse foods
     if (typeof foods === "string") {
@@ -108,10 +132,9 @@ export const createOrder = async (req, res) => {
     }
 
     // ==========================
-    // 💰 CALCULATE PRICE (เร็วขึ้น)
+    // 💰 CALCULATE PRICE (กันโกง)
     // ==========================
     const foodIds = cleanFoods.map((f) => f.food);
-
     const foodDocs = await Food.find({ _id: { $in: foodIds } });
 
     let totalPrice = 0;
@@ -124,13 +147,26 @@ export const createOrder = async (req, res) => {
     });
 
     // ==========================
-    // ⏱ ETA
+    // 🎟️ APPLY COUPON (ตรงนี้เท่านั้น)
+    // ==========================
+    let discount = 0;
+
+    if (coupon) {
+      const result = await applyCouponToOrder(
+        coupon,
+        user,
+        totalPrice
+      );
+
+      totalPrice = result.total;
+      discount = result.discount;
+    }
+
+    // ==========================
+    // ⏱ ETA + RIDER
     // ==========================
     const eta = Math.floor(10 + Math.random() * 10);
 
-    // ==========================
-    // 🚚 rider
-    // ==========================
     const riderLocation = {
       lat: 14.073,
       lng: 100.608,
@@ -142,7 +178,8 @@ export const createOrder = async (req, res) => {
       user,
       foods: cleanFoods,
       totalPrice,
-      paymentMethod: normalizePaymentMethod(paymentMethod), // 🔥 FIX สำคัญ
+      discount, // 🔥 เพิ่ม field
+      paymentMethod: normalizePaymentMethod(paymentMethod),
       slip,
       paymentStatus: normalizePayment(slip ? "paid" : "pending"),
       status: "pending",
@@ -157,114 +194,11 @@ export const createOrder = async (req, res) => {
     }
 
     res.status(201).json(populatedOrder);
+
   } catch (error) {
     console.error("CREATE ORDER ERROR 💥:", error);
-    res.status(400).json({ message: error.message });
-  }
-};
-
-// ==========================
-// ✅ UPDATE ORDER
-// ==========================
-export const updateOrder = async (req, res) => {
-  try {
-    if (req.body.status) {
-      req.body.status = normalizeStatus(req.body.status);
-    }
-
-    if (req.body.paymentStatus) {
-      req.body.paymentStatus = normalizePayment(req.body.paymentStatus);
-    }
-
-    if (req.body.paymentMethod) {
-      req.body.paymentMethod = normalizePaymentMethod(
-        req.body.paymentMethod
-      );
-    }
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).populate("foods.food user");
-
-    if (!updatedOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (global.io) {
-      global.io.emit("order:update", updatedOrder);
-    }
-
-    res.json(updatedOrder);
-  } catch (error) {
-    console.error("UPDATE ORDER ERROR 💥:", error);
-    res.status(400).json({ message: error.message });
-  }
-};
-
-// ==========================
-// 🔥 UPDATE STATUS (ADMIN)
-// ==========================
-export const updateOrderStatus = async (req, res) => {
-  try {
-    const normalized = normalizeStatus(req.body.status);
-
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status: normalized },
-      { new: true }
-    ).populate("foods.food user");
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (global.io) {
-      global.io.emit("order:update", order);
-    }
-
-    res.json(order);
-  } catch (error) {
-    console.error("UPDATE STATUS ERROR 💥:", error);
-    res.status(400).json({ message: error.message });
-  }
-};
-
-// ==========================
-// ✅ DELETE
-// ==========================
-export const deleteOrder = async (req, res) => {
-  try {
-    const deleted = await Order.findByIdAndDelete(req.params.id);
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (global.io) {
-      global.io.emit("order:delete", deleted._id);
-    }
-
-    res.json({ message: "Order deleted" });
-  } catch (error) {
-    console.error("DELETE ORDER ERROR 💥:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ==========================
-// ✅ GET USER ORDERS
-// ==========================
-export const getUserOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.params.id })
-      .populate("foods.food", "name price image")
-      .sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error("GET USER ORDERS ERROR 💥:", error);
-    res.status(500).json({ message: error.message });
+    res.status(400).json({
+      message: error.message || "Create order failed",
+    });
   }
 };
