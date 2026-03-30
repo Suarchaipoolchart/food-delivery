@@ -1,15 +1,16 @@
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import API from "../services/api";
 
-export default function Checkout() {
+export default function CheckoutV2() {
   const navigate = useNavigate();
 
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
   const [payment, setPayment] = useState("Cash");
   const [selectedBank, setSelectedBank] = useState("SCB");
+
   const [slip, setSlip] = useState(null);
   const [preview, setPreview] = useState(null);
 
@@ -19,9 +20,136 @@ export default function Checkout() {
 
   const [address, setAddress] = useState("");
 
-  const BASE_URL = import.meta.env.VITE_API_UR;
+  const [loadingCoupon, setLoadingCoupon] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
 
+  // =========================
+  // 💰 CALCULATE (useMemo)
+  // =========================
+  const subtotal = useMemo(() => {
+    return cart.reduce(
+      (sum, item) => sum + Number(item.price) * (item.qty || 1),
+      0,
+    );
+  }, [cart]);
+
+  const total = finalTotal || subtotal;
+
+  // =========================
+  // 📸 SLIP (validate)
+  // =========================
+  const handleSlip = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 🔥 กันไฟล์มั่ว
+    if (!file.type.startsWith("image/")) {
+      return alert("ต้องเป็นรูปภาพเท่านั้น");
+    }
+
+    // 🔥 จำกัด size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      return alert("ไฟล์ใหญ่เกิน 2MB");
+    }
+
+    setSlip(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  // =========================
+  // 🎟️ APPLY COUPON (กัน spam)
+  // =========================
+  const applyCoupon = async () => {
+    if (!couponCode) return;
+    if (loadingCoupon) return;
+
+    try {
+      setLoadingCoupon(true);
+
+      const res = await API.post("/coupons/apply", {
+        code: couponCode,
+        total: subtotal,
+      });
+
+      setDiscount(res.data.discount);
+      setFinalTotal(res.data.finalTotal);
+
+      alert(`ลด ${res.data.discount} บาท 🎉`);
+    } catch (err) {
+      setDiscount(0);
+      setFinalTotal(0);
+
+      alert(err.response?.data?.message || "Coupon ไม่ถูกต้อง");
+    } finally {
+      setLoadingCoupon(false);
+    }
+  };
+
+  // =========================
+  // 🛒 PLACE ORDER (กันยิงซ้ำ)
+  // =========================
+  const placeOrder = async () => {
+    if (placingOrder) return;
+
+    try {
+      setPlacingOrder(true);
+
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?._id || user?.id;
+
+      if (!userId) return alert("Login ใหม่ก่อน");
+      if (cart.length === 0) return alert("ไม่มีสินค้า");
+      if (!address.trim()) return alert("กรุณากรอกที่อยู่");
+
+      if (payment !== "Cash" && !slip) {
+        return alert("แนบสลิปก่อน");
+      }
+
+      const formattedFoods = cart.map((item) => ({
+        food: String(item._id),
+        qty: Number(item.qty) || 1,
+      }));
+
+      const formData = new FormData();
+      formData.append("user", userId);
+      formData.append("foods", JSON.stringify(formattedFoods));
+      formData.append("paymentMethod", payment);
+      formData.append("address", address);
+
+      // 🔥 ไม่ส่ง total ไป backend (กันโกง)
+      if (couponCode) {
+        formData.append("coupon", couponCode);
+      }
+
+      if (payment === "Bank Transfer") {
+        formData.append("bank", selectedBank);
+      }
+
+      if (slip) {
+        formData.append("slip", slip);
+      }
+
+      await API.post("/orders", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert("สั่งสำเร็จ 🎉");
+
+      localStorage.removeItem("cart");
+      navigate("/orders");
+    } catch (err) {
+      console.log(err.response?.data || err.message);
+      alert(err.response?.data?.message || "Order failed");
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  // =========================
   // 🏦 BANK
+  // =========================
   const BANKS = [
     {
       name: "SCB",
@@ -50,110 +178,6 @@ export default function Checkout() {
     },
   ];
 
-  const ACCOUNT = {
-    name: "Foodmonkey ProMax",
-    number: "123-4-56789-0",
-  };
-
-  // =========================
-  // 💰 CALCULATE
-  // =========================
-  const subtotal = cart.reduce(
-    (sum, item) => sum + Number(item.price) * (item.qty || 1),
-    0,
-  );
-
-  const total = finalTotal || subtotal;
-
-  // =========================
-  // 📸 SLIP
-  // =========================
-  const handleSlip = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setSlip(file);
-    setPreview(URL.createObjectURL(file));
-  };
-
-  // =========================
-  // 🎟️ APPLY COUPON (FIX สำคัญ)
-  // =========================
-  const applyCoupon = async () => {
-    if (!couponCode) return;
-
-    try {
-      const res = await API.post("/coupons/apply", {
-        code: couponCode,
-        total: subtotal, // 🔥 ต้องส่ง total ไป backend
-      });
-
-      setDiscount(res.data.discount);
-      setFinalTotal(res.data.finalTotal);
-
-      alert(`ลด ${res.data.discount} บาท 🎉`);
-    } catch (err) {
-      alert(err.response?.data?.message || "Coupon ไม่ถูกต้อง");
-    }
-  };
-
-  // =========================
-  // 🛒 PLACE ORDER
-  // =========================
-  const placeOrder = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const userId = user?._id || user?.id;
-
-      if (!userId) return alert("Login ใหม่ก่อน");
-      if (cart.length === 0) return alert("ไม่มีสินค้า");
-      if (!address) return alert("กรุณากรอกที่อยู่");
-
-      if (payment !== "Cash" && !slip) {
-        return alert("แนบสลิปก่อน");
-      }
-
-      const formattedFoods = cart.map((item) => ({
-        food: String(item._id),
-        qty: Number(item.qty) || 1,
-      }));
-
-      const formData = new FormData();
-      formData.append("user", userId);
-      formData.append("foods", JSON.stringify(formattedFoods));
-      formData.append("totalPrice", total);
-      formData.append("paymentMethod", payment);
-      formData.append("address", address);
-
-      // 🔥 เพิ่ม coupon ส่งไป backend
-      if (couponCode) {
-        formData.append("coupon", couponCode);
-        formData.append("discount", discount);
-      }
-
-      if (payment === "Bank Transfer") {
-        formData.append("bank", selectedBank);
-      }
-
-      if (slip) {
-        formData.append("slip", slip);
-      }
-
-      await API.post("/orders", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      alert("สั่งสำเร็จ 🎉");
-      localStorage.removeItem("cart");
-      navigate("/orders");
-    } catch (err) {
-      console.log(err.response?.data || err.message);
-      alert(err.response?.data?.message || "Error");
-    }
-  };
-
   return (
     <>
       <Navbar />
@@ -181,7 +205,6 @@ export default function Checkout() {
 
         {/* ADDRESS */}
         <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <h2 className="font-bold mb-2">ที่อยู่จัดส่ง</h2>
           <textarea
             rows="3"
             placeholder="กรอกที่อยู่..."
@@ -192,21 +215,20 @@ export default function Checkout() {
         </div>
 
         {/* COUPON */}
-        <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <div className="flex gap-2">
-            <input
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              className="border p-2 w-full"
-              placeholder="Coupon"
-            />
-            <button
-              onClick={applyCoupon}
-              className="bg-green-500 px-4 text-white"
-            >
-              Apply
-            </button>
-          </div>
+        <div className="bg-white p-6 rounded-xl shadow mb-6 flex gap-2">
+          <input
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            className="border p-2 w-full"
+            placeholder="Coupon"
+          />
+          <button
+            disabled={loadingCoupon}
+            onClick={applyCoupon}
+            className="bg-green-500 px-4 text-white"
+          >
+            {loadingCoupon ? "..." : "Apply"}
+          </button>
         </div>
 
         {/* PAYMENT */}
@@ -221,43 +243,6 @@ export default function Checkout() {
             <option value="Bank Transfer">Bank Transfer</option>
           </select>
 
-          {payment === "PromptPay" && (
-            <img
-              src={`https://promptpay.io/0812345678/${total}.png`}
-              className="mx-auto w-52 mt-4"
-            />
-          )}
-
-          {payment === "Bank Transfer" && (
-            <>
-              <img
-                src="/qr-payment.jpg"
-                className="w-48 mx-auto mt-4 rounded"
-              />
-
-              <div className="grid grid-cols-3 gap-3 mt-4">
-                {BANKS.map((b) => (
-                  <div
-                    key={b.name}
-                    onClick={() => setSelectedBank(b.name)}
-                    className={`border p-3 text-center cursor-pointer rounded ${
-                      selectedBank === b.name && "border-pink-500"
-                    }`}
-                  >
-                    <img src={b.img} className="h-10 mx-auto" />
-                    <p className="text-xs">{b.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 bg-gray-100 p-3 rounded">
-                <p>{ACCOUNT.name}</p>
-                <p>{ACCOUNT.number}</p>
-                <p>{BANKS.find((b) => b.name === selectedBank)?.label}</p>
-              </div>
-            </>
-          )}
-
           {payment !== "Cash" && (
             <div className="mt-4">
               <input type="file" onChange={handleSlip} />
@@ -267,10 +252,11 @@ export default function Checkout() {
         </div>
 
         <button
+          disabled={placingOrder}
           onClick={placeOrder}
           className="w-full bg-pink-500 text-white py-3 rounded"
         >
-          Place Order
+          {placingOrder ? "Processing..." : "Place Order"}
         </button>
       </div>
     </>
